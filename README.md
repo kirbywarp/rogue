@@ -3,8 +3,8 @@ Collaborative roguelike game in Golang
 
 Controls:
 ---------
-hjklyubn to move
-<> to move up or down
+hjklyubn to move  
+<> to move up or down  
 ctrl+q to quit
 
 Installing:
