@@ -133,8 +133,9 @@ func main() {
 
     // Create a new tilemap and player coordinates for the game
     tilemap := NewMap()
-    px, py, pz := uint64(10), uint64(10), uint64(100)
-    bx, by := uint64(5), uint64(5)
+    cx, cy, cz := 0x80000, 0x80000, 0x80000
+    px, py, pz := uint64(cx+10), uint64(cy+10), uint64(cz+100)
+    bx, by := uint64(cx+5), uint64(cy+5)
 
     // GUI and input initialization
     err := termbox.Init()
@@ -159,7 +160,7 @@ func main() {
 	//TODO: blocking?
     event1 := termbox.PollEvent()
 
-    bat := true
+    bat := false
     
     switch event1.Ch {
         case 'y': bat = true
@@ -182,7 +183,7 @@ func main() {
         }
         Draw(width/2, height-1-height/2, NewArt('@', RGB(1, 0, 0), RGB(0, 0, 0)))
         if bat{
-            Draw(width/2+int(bx)-int(px), height/2+int(by)-int(py), NewArt('b', RGB(0, 0, 1), RGB(0, 0, 0)))  
+            Draw(width/2+int(bx)-int(px), height-1-(height/2+int(by)-int(py)), NewArt('b', RGB(0, 0, 1), RGB(0, 0, 0)))  
         }
         termbox.Flush()
         
