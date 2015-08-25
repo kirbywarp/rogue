@@ -99,26 +99,21 @@ func Draw(x, y int, a Art) {
     termbox.SetCell(x, y, a.Symbol, fg, bg)
 }
 /*
-BatMovement determines which direction the bat should move in order to chase the player.
-It returns an array containing [dx,dy] where 0<=|dx+dy|<=1. It's taxicab geomentry, 
-so order doesn't matter; an bat arbitrarily favors moving in order: x, y.
-Bats can fly over stones, so they don't care about collisions and moving in z direction is free.
+BatMovement determines which direction the an bat should move in order to chase the player.
+It returns dx and dy where dx,dy = 0 or ±1
+An bats can fly over stones, and automatically follow the player in the z direction.
 
 */
-func BatMovement(bx, by, px, py uint64) [2]float64 { 
-    move := [2]float64{0,0}
-    floatpx := float64(px)
-    floatpy := float64(py)
-    floatbx := float64(bx)
-    floatby := float64(by)
+func BatMovement(bx, by, px, py uint64) (float64, float64) { 
     
-    if (floatbx > (floatpx+1)) || (floatbx < (floatpx-1)) {
-        move[0] = math.Copysign(1,floatpx-floatbx)
-    } else if (floatby > (floatpy+1)) || (floatby < (floatpy-1)) {
-        move[1] = math.Copysign(1,floatpy-floatby)
+    if (float64(bx) > (float64(px)+1)) || (float64(bx) < (float64(px)-1)) {
+        dx = math.Copysign(1,float64(px)-float64(bx))
+    } 
+    if (float64(by) > (float64(py)+1)) || (float64(by) < (float64(py)-1)) {
+        dy = math.Copysign(1,float64(py)-float64(by))
     }
     
-    return move
+    return dx, dy
 }
 
 func main() {
@@ -147,9 +142,9 @@ func main() {
     for !done {
         
         // UPDATING
-        nextBatMove := BatMovement(bx,by,px,py)
-        bx = uint64(float64(bx) + nextBatMove[0])
-        by = uint64(float64(by) + nextBatMove[1])
+        bdx, bdy := BatMovement(bx,by,px,py)
+        bx = uint64(float64(bx) + bdx)
+        by = uint64(float64(by) + bdy)
              
         // RENDERING
         for y := 0; y < height; y++ {
@@ -158,7 +153,7 @@ func main() {
             }
         }
         Draw(width/2, height-1-height/2, NewArt('@', RGB(1, 0, 0), RGB(0, 0, 0)))
-        Draw(width/2+int(bx-px), height/2+int(by-py), NewArt('b', RGB(0, 0, 1), RGB(0, 0, 0)))
+        Draw(width/2+int(bx)-int(px), height/2+int(by)-int(py), NewArt('b', RGB(0, 0, 1), RGB(0, 0, 0)))
         termbox.Flush()
         
 
