@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     "github.com/nsf/termbox-go"
+    "math"
     "math/rand"
     "time"
 )
@@ -97,6 +98,28 @@ func Draw(x, y int, a Art) {
 
     termbox.SetCell(x, y, a.Symbol, fg, bg)
 }
+/*
+BatMovement determines which direction the bat should move in order to chase the player.
+It returns an array containing [dx,dy] where 0<=|dx+dy|<=1. It's taxicab geomentry, 
+so order doesn't matter; an bat arbitrarily favors moving in order: x, y.
+Bats can fly over stones, so they don't care about collisions and moving in z direction is free.
+
+*/
+func BatMovement(bx, by, px, py uint64) [2]float64 { 
+    move := [2]float64{0,0}
+    floatpx := float64(px)
+    floatpy := float64(py)
+    floatbx := float64(bx)
+    floatby := float64(by)
+    
+    if (floatbx > (floatpx+1)) || (floatbx < (floatpx-1)) {
+        move[0] = math.Copysign(1,floatpx-floatbx)
+    } else if (floatby > (floatpy+1)) || (floatby < (floatpy-1)) {
+        move[1] = math.Copysign(1,floatpy-floatby)
+    }
+    
+    return move
+}
 
 func main() {
     // Seed the random number generator!
@@ -105,6 +128,7 @@ func main() {
     // Create a new tilemap and player coordinates for the game
     tilemap := NewMap()
     px, py, pz := uint64(10), uint64(10), uint64(100)
+    bx, by := uint64(5), uint64(5)
 
     // GUI and input initialization
     err := termbox.Init()
@@ -121,6 +145,12 @@ func main() {
     // And start the game!
     done := false
     for !done {
+        
+        // UPDATING
+        nextBatMove := BatMovement(bx,by,px,py)
+        bx = uint64(float64(bx) + nextBatMove[0])
+        by = uint64(float64(by) + nextBatMove[1])
+             
         // RENDERING
         for y := 0; y < height; y++ {
             for x := 0; x < width; x++ {
@@ -128,7 +158,9 @@ func main() {
             }
         }
         Draw(width/2, height-1-height/2, NewArt('@', RGB(1, 0, 0), RGB(0, 0, 0)))
+        Draw(width/2+int(bx-px), height/2+int(by-py), NewArt('b', RGB(0, 0, 1), RGB(0, 0, 0)))
         termbox.Flush()
+        
 
         // INPUT HANDLING
         event := termbox.PollEvent()
@@ -152,11 +184,15 @@ func main() {
                 done = true
             }
         }
+        
+        
 
         if tilemap.Get(px+dx, py+dy, pz+dz).Symbol != '#' {
             px += dx
             py += dy
             pz += dz
         }
+        
+        
     }
 }
