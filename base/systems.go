@@ -6,17 +6,25 @@ import (
 )
 
 
-///////////////////////
-// MAP MANIPULATIONS //
-///////////////////////
+/////////////////////
+// MOVEMENT SYSTEM //
+/////////////////////
 
 /*
-Place puts an entity on to the map at a particular location
+Move applies makes every entity with movement try to move in the map
 */
-func Place(db *engine.EntityDB, eid engine.Entity, r engine.Entity, x, y, z uint64) {
-    if !db.Has(r, "map") { return }
+func SystemMove(db *engine.EntityDB) {
+    for _, eid := range db.Search("movement", "position") {
+        pos := db.Get(eid, "position").(*Position)
+        mov := db.Get(eid, "movement").(*Movement)
+        emap := db.Get(pos.R, "map").(EntityMap)
 
-    db.Get(r, "map").(EntityMap).Set(x, y, z, eid)
-    loc := db.Create(eid, "location").(*Location)
-    loc.R, loc.X, loc.Y, loc.Z = r, x, y, z
+        emap.Set(pos.X, pos.Y, pos.Z, 0)
+
+        pos.X += mov.Dx;
+        pos.Y += mov.Dy;
+        pos.Z += mov.Dz;
+
+        emap.Set(pos.X, pos.Y, pos.Z, eid)
+    }
 }

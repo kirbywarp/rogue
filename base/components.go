@@ -22,17 +22,28 @@ type Art struct {
 func CreateArt() interface{} { return &Art{} }
 func CloneArt(val interface{}) interface{} { tmp := *(val.(*Art)); return &tmp }
 
-// LOCATION ============================================================================ //
-type Location struct {
+// POSITION ============================================================================ //
+type Position struct {
     R engine.Entity
-    X, Y, Z uint64
+    X, Y, Z int64
 }
-func NewLocation(r engine.Entity, x, y, z uint64) Location {
-    return Location{R: r, X: x, Y: y, Z: z}
+func NewPosition(r engine.Entity, x, y, z int64) Position {
+    return Position{R: r, X: x, Y: y, Z: z}
 }
 
-func CreateLocation() interface{} { return &Location{} }
-func CloneLocation(val interface{}) interface{} { tmp := *(val.(*Location)); return &tmp }
+func CreatePosition() interface{} { return &Position{} }
+func ClonePosition(val interface{}) interface{} { tmp := *(val.(*Position)); return &tmp }
+
+// MOVEMENT ============================================================================ //
+type Movement struct {
+    Dx, Dy, Dz int64
+}
+func NewMovement(dx, dy, dz int64) Movement {
+    return Movement{Dx: dx, Dy: dy, Dz: dz}
+}
+
+func CreateMovement() interface{} { return &Movement{} }
+func CloneMovement(val interface{}) interface{} { tmp := *(val.(*Movement)); return &tmp }
 
 // ENTITY MAP ============================================================================ //
 /* See map.go for type definition */
@@ -52,6 +63,7 @@ func CloneEntityMap(val interface{}) interface{} {
 
 func RegisterTypes(db *engine.EntityDB) {
     db.Register("art", CreateArt, CloneArt)
-    db.Register("location", CreateLocation, CloneLocation)
+    db.Register("position", CreatePosition, ClonePosition)
+    db.Register("movement", CreateMovement, CloneMovement)
     db.Register("map", CreateEntityMap, CloneEntityMap)
 }

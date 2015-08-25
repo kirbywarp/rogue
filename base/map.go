@@ -16,7 +16,7 @@ type MapChunk [16*16]engine.Entity
 EntityMaps hold tile data for a contiguous section of the world, addressable
 via x,y,z coordinates.
 */
-type EntityMap map[uint64]*MapChunk
+type EntityMap map[int64]*MapChunk
 func NewEntityMap() EntityMap {
     return make(EntityMap)
 }
@@ -24,7 +24,7 @@ func NewEntityMap() EntityMap {
 /*
 Get returns the tile at the given x,y,z coordinates.  Each coordinate is 3 bytes wide.
 */
-func (m EntityMap) Get(x, y, z uint64) engine.Entity {
+func (m EntityMap) Get(x, y, z int64) engine.Entity {
     key := (x&0xFFFFF0)<<36 + (y&0xFFFFF0)<<16 + (z & 0xFFFFF)
     chunk, ok := m[key]
     if ok {
@@ -36,7 +36,7 @@ func (m EntityMap) Get(x, y, z uint64) engine.Entity {
 /*
 Set sets the value of a tile location on the EntityMap.
 */
-func (m EntityMap) Set(x, y, z uint64, eid engine.Entity) {
+func (m EntityMap) Set(x, y, z int64, eid engine.Entity) {
     key := (x&0xFFFFF0)<<36 + (y&0xFFFFF0)<<16 + (z & 0xFFFFF)
     chunk, ok := m[key]
     if !ok {

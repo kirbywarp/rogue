@@ -34,12 +34,24 @@ func (manager manager) Clone(src, dst Entity) interface{} {
     manager.comps[dst] = newc
     return newc
 }
-func (manager manager) Get(eid Entity) (retval interface{}, ok bool) {
-    retval, ok = manager.comps[eid]
-    return
+func (manager manager) Get(eid Entity) interface{} {
+    return manager.comps[eid]
 }
 func (manager manager) Remove(eid Entity) {
     delete(manager.comps, eid)
+}
+func (manager manager) Has(eid Entity) bool {
+    _, ok := manager.comps[eid]
+    return ok
+}
+func (manager manager) Entities() []Entity {
+    list := make([]Entity, len(manager.comps))
+    i := 0
+    for key, _ := range manager.comps {
+        list[i] = key
+        i++
+    }
+    return list
 }
 
 
@@ -112,9 +124,7 @@ func (db *EntityDB) Create(eid Entity, name string) interface{} {
 Get retrieves a component for the given entity
 */
 func (db *EntityDB) Get(eid Entity, name string) interface{} {
-    retval, ok := db.Manager(name).Get(eid)
-    if !ok { panic(fmt.Sprintf("EntityDB: Entity '%d' has no component '%s'", eid, name)) }
-    return retval
+    return db.Manager(name).Get(eid)
 }
 
 /*
@@ -129,8 +139,21 @@ Has returns true if the passed entity has every given component
 */
 func (db *EntityDB) Has(eid Entity, components ...string) bool {
     for _, name := range components {
-        _, ok := db.Manager(name).Get(eid)
-        if !ok { return false }
+        if !db.Manager(name).Has(eid) { return false }
     }
     return true
+}
+
+/*
+Search returns a list of Entities that have the given list of components
+*/
+func (db *EntityDB) Search(name string, components ...string) []Entity {
+    base := db.Manager(name).Entities()
+    retval := make([]Entity, 0, len(base))
+    for _, eid := range base {
+        if db.Has(eid, components...) {
+            retval = append(retval, eid)
+        }
+    }
+    return retval
 }
