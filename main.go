@@ -104,16 +104,27 @@ It returns dx and dy where dx,dy = 0 or ±1
 An bats can fly over stones, and automatically follow the player in the z direction.
 
 */
-func BatMovement(bx, by, px, py uint64) (float64, float64) { 
+func BatMovement(bx, by, px, py uint64) (float64, float64) {     
+    dx, dy := float64(0), float64(0)
     
     if (float64(bx) > (float64(px)+1)) || (float64(bx) < (float64(px)-1)) {
         dx = math.Copysign(1,float64(px)-float64(bx))
     } 
     if (float64(by) > (float64(py)+1)) || (float64(by) < (float64(py)-1)) {
         dy = math.Copysign(1,float64(py)-float64(by))
-    }
-    
+    }    
     return dx, dy
+}
+
+/*
+TermboxPrint prints text to the termbox on row y starting at column x
+*/
+
+func TermboxPrint(text string, x, y int, fg, bg termbox.Attribute) {
+	for _, char := range text {
+		termbox.SetCell(x, y, char, fg, bg)
+		x++
+	}
 }
 
 func main() {
@@ -136,9 +147,26 @@ func main() {
     termbox.SetOutputMode(termbox.Output216)
     termbox.Clear(0, 0)
     width, height := termbox.Size()
+    title := "Press any key to play. Press 'y' to face an bat at your own risk!"
+
 
     // And start the game!
+    
+    //menu??
+	TermboxPrint(title, width/8, height/2, termbox.ColorBlue, termbox.ColorBlack)
+	termbox.Flush()
+	
+	//TODO: blocking?
+    event1 := termbox.PollEvent()
+
+    bat := true
+    
+    switch event1.Ch {
+        case 'y': bat = true
+        }
+    
     done := false
+
     for !done {
         
         // UPDATING
@@ -153,7 +181,9 @@ func main() {
             }
         }
         Draw(width/2, height-1-height/2, NewArt('@', RGB(1, 0, 0), RGB(0, 0, 0)))
-        Draw(width/2+int(bx)-int(px), height/2+int(by)-int(py), NewArt('b', RGB(0, 0, 1), RGB(0, 0, 0)))
+        if bat{
+            Draw(width/2+int(bx)-int(px), height/2+int(by)-int(py), NewArt('b', RGB(0, 0, 1), RGB(0, 0, 0)))  
+        }
         termbox.Flush()
         
 
