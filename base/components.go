@@ -18,6 +18,9 @@ type Art struct {
     Symbol rune
     Fg, Bg Color
 }
+func NewArt(symbol rune, fgr, fgg, fgb, bgr, bgg, bgb float64) *Art {
+    return &Art{Symbol: symbol, Fg: RGB(fgr, fgg, fgb), Bg: RGB(bgr, bgg, bgb)}
+}
 
 func CreateArt() interface{} { return &Art{} }
 func CloneArt(val interface{}) interface{} { tmp := *(val.(*Art)); return &tmp }
@@ -27,8 +30,8 @@ type Position struct {
     R engine.Entity
     X, Y, Z int64
 }
-func NewPosition(r engine.Entity, x, y, z int64) Position {
-    return Position{R: r, X: x, Y: y, Z: z}
+func NewPosition(r engine.Entity, x, y, z int64) *Position {
+    return &Position{R: r, X: x, Y: y, Z: z}
 }
 
 func CreatePosition() interface{} { return &Position{} }
@@ -38,8 +41,8 @@ func ClonePosition(val interface{}) interface{} { tmp := *(val.(*Position)); ret
 type Movement struct {
     Dx, Dy, Dz int64
 }
-func NewMovement(dx, dy, dz int64) Movement {
-    return Movement{Dx: dx, Dy: dy, Dz: dz}
+func NewMovement(dx, dy, dz int64) *Movement {
+    return &Movement{Dx: dx, Dy: dy, Dz: dz}
 }
 
 func CreateMovement() interface{} { return &Movement{} }

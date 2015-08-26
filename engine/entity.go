@@ -37,6 +37,9 @@ func (manager manager) Clone(src, dst Entity) interface{} {
 func (manager manager) Get(eid Entity) interface{} {
     return manager.comps[eid]
 }
+func (manager manager) Set(eid Entity, comp interface{}) {
+    manager.comps[eid] = comp
+}
 func (manager manager) Remove(eid Entity) {
     delete(manager.comps, eid)
 }
@@ -125,6 +128,14 @@ Get retrieves a component for the given entity
 */
 func (db *EntityDB) Get(eid Entity, name string) interface{} {
     return db.Manager(name).Get(eid)
+}
+
+/*
+Set directly sets a component on to an entity, overwriting
+any previous component.
+*/
+func (db *EntityDB) Set(eid Entity, name string, component interface{}) {
+    db.Manager(name).Set(eid, component)
 }
 
 /*
