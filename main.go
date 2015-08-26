@@ -121,10 +121,10 @@ TermboxPrint prints text to the termbox on row y starting at column x
 */
 
 func TermboxPrint(text string, x, y int, fg, bg termbox.Attribute) {
-	for _, char := range text {
-		termbox.SetCell(x, y, char, fg, bg)
-		x++
-	}
+    for _, char := range text {
+        termbox.SetCell(x, y, char, fg, bg)
+        x++
+    }
 }
 
 func main() {
@@ -153,13 +153,15 @@ func main() {
 
     // And start the game!
     
-    //menu??
-	TermboxPrint(title, width/8, height/2, termbox.ColorBlue, termbox.ColorBlack)
-	termbox.Flush()
+    //menu
+    TermboxPrint(title, width/8, height/2, termbox.ColorBlue, termbox.ColorBlack)
+    termbox.Flush()
 	
-	//TODO: blocking?
     event1 := termbox.PollEvent()
-
+    for event1.Type != termbox.EventKey {
+        event1 = termbox.PollEvent()
+    }
+    fmt.Println(event1)
     bat := false
     
     switch event1.Ch {
