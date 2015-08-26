@@ -2,7 +2,7 @@ package base
 
 
 import (
-    "../engine"
+    "github.com/kirbywarp/rogue/engine"
 )
 
 

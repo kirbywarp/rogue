@@ -7,8 +7,8 @@ import (
     "math/rand"
     "time"
 
-    "./engine"
-    "./base"
+    "github.com/kirbywarp/rogue/engine"
+    "github.com/kirbywarp/rogue/base"
 )
 
 
