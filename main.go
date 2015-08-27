@@ -155,7 +155,7 @@ func main() {
     db.Set(player, "art", base.NewArt('@', 1, 0, 0, 0, 0, 0))
     base.HelperPlace(db, player, tilemap, 0, 0, 1)
 
-    bat := db.New("art", "movement")
+    bat := db.New("movement")
     db.Set(bat, "art", base.NewArt('b', 0, 0, 1, 0, 0, 0))
 
 
