@@ -1,6 +1,7 @@
 package main
 
 import (
+    "bytes"
     "fmt"
     "github.com/nsf/termbox-go"
     "math"
@@ -32,6 +33,48 @@ func DrawString(text string, x, y int, fg, bg base.Color) {
         Draw(x, y, char, fg, bg)
         x++
     }
+}
+
+/*
+DrawTextBox creates a textbox of length size at coord x, y on the termbox and blocks while the user 
+inputs a string. It stops blocking when the enter key is pressed or when the string exceeds length size 
+and returns the user's input.
+*/
+
+func DrawTextBox(size, x, y int, fg, bg base.Color) string {
+    //Draw the box
+    x1 := x
+    for i := 0; i < size+2; i++ {
+        Draw(x1, y, '-', fg, bg)
+        Draw(x1, y-2, '-', fg, bg)
+        x1++
+    }
+    Draw(x, y-1, '|', fg, bg)
+    Draw(x+size+1, y-1, '|', fg, bg)
+    
+    termbox.Flush()
+    
+    //check input
+    var buffer bytes.Buffer
+    i:= 0
+    for i < size {
+        event := termbox.PollEvent()
+        if event.Key == termbox.KeyEnter {
+            return buffer.String()
+        } else if event.Key == termbox.KeyBackspace {
+            i--
+            buffer.Truncate(i)
+            //TODO: better way to clear the cell?
+            Draw(x+1+i, y-1, '.', base.RGB(0, 0, 0), base.RGB(0, 0, 0))
+            termbox.Flush()    
+        } else if event.Type == termbox.EventKey {            
+            buffer.WriteString(string(event.Ch))
+            Draw(x+1+i, y-1, event.Ch, fg,bg)
+            termbox.Flush()
+            i++
+        }
+    }
+    return buffer.String()
 }
 
 
@@ -172,10 +215,11 @@ func main() {
     termbox.Clear(0, 0)
     width, height := termbox.Size()
     title := "Press any key to play. Press 'y' to face an bat at your own risk!"
+    batTextBox := "How many bats?"
 
 
     // menu
-    DrawString(title, width/8, height/2, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
+    DrawString(title, width/8, height/4, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
     termbox.Flush()
 
     event1 := termbox.PollEvent()
@@ -184,18 +228,31 @@ func main() {
     }
 
     showbat := false
+    //TODO: numBats := 0
+    numBats := "0"
     switch event1.Ch {
     case 'y':
         showbat = true;
+        //TODO: replace next line below
         base.HelperPlace(db, bat, tilemap, 5, 5, 2)
     }
-
+    
+    if showbat{
+        DrawString(batTextBox, width/2, height/2-4, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
+        //TODO: Error handling & string -> int conversion
+        numBats = DrawTextBox(4, width/2, height/2, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
+        //TODO: Copy bat numBats times (lol numBats) and remove print statement
+        fmt.Println(numBats)
+        }
+        
+    
 
     // game loop
     done := false
     for !done {
         // RENDERING
         RenderMapAt(db, player)
+
 
 
         // INPUT HANDLING
@@ -225,6 +282,7 @@ func main() {
 
 
         // UPDATING
+        //TODO: Make EVERYBAT follow
         if showbat { Follow(db, bat, player) }
 
         base.SystemMove(db)
