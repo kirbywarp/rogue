@@ -50,8 +50,7 @@ func DrawTextBox(size, x, y int, fg, bg base.Color) string {
         x1++
     }
     Draw(x, y-1, '|', fg, bg)
-    Draw(x+size+1, y-1, '|', fg, bg)
-    
+    Draw(x+size+1, y-1, '|', fg, bg)  
     termbox.Flush()
     
     //check input
@@ -62,7 +61,9 @@ func DrawTextBox(size, x, y int, fg, bg base.Color) string {
         if event.Key == termbox.KeyEnter {
             return buffer.String()
         } else if event.Key == termbox.KeyBackspace {
-            i--
+            if i > 0 {
+                i--
+            }
             buffer.Truncate(i)
             //TODO: better way to clear the cell?
             Draw(x+1+i, y-1, '.', base.RGB(0, 0, 0), base.RGB(0, 0, 0))
