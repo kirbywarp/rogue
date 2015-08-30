@@ -19,12 +19,12 @@ func SystemMove(db *engine.EntityDB) {
         mov := db.Get(eid, "movement").(*Movement)
         emap := db.Get(pos.R, "map").(*EntityMap)
 
+        // Prevent entities from moving on top of each other, temporarily
+        if emap.Get(pos.X+mov.Dx, pos.Y+mov.Dy, pos.Z+mov.Dz) != 0 { return }
+
+        // Move and update the map
         emap.Set(pos.X, pos.Y, pos.Z, 0)
-
-        pos.X += mov.Dx;
-        pos.Y += mov.Dy;
-        pos.Z += mov.Dz;
-
+        pos.X += mov.Dx; pos.Y += mov.Dy; pos.Z += mov.Dz
         emap.Set(pos.X, pos.Y, pos.Z, eid)
     }
 }
