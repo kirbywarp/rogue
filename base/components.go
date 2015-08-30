@@ -54,9 +54,10 @@ func CloneMovement(val interface{}) interface{} { tmp := *(val.(*Movement)); ret
 func CreateEntityMap() interface{} { return NewEntityMap() }
 func CloneEntityMap(val interface{}) interface{} {
     newmap := NewEntityMap()
-    for k, v := range val.(EntityMap) {
-        newmap[k] = v
+    for k, v := range val.(*EntityMap).chunks {
+        newmap.chunks[k] = v
     }
+    newmap.generator = val.(*EntityMap).generator
     return newmap
 }
 

@@ -17,7 +17,7 @@ func SystemMove(db *engine.EntityDB) {
     for _, eid := range db.Search("movement", "position") {
         pos := db.Get(eid, "position").(*Position)
         mov := db.Get(eid, "movement").(*Movement)
-        emap := db.Get(pos.R, "map").(EntityMap)
+        emap := db.Get(pos.R, "map").(*EntityMap)
 
         emap.Set(pos.X, pos.Y, pos.Z, 0)
 

@@ -16,7 +16,7 @@ HelperPlace puts an entity on to the map at a particular position
 func HelperPlace(db *engine.EntityDB, eid engine.Entity, r engine.Entity, x, y, z int64) {
     if !db.Has(r, "map") { return }
 
-    db.Get(r, "map").(EntityMap).Set(x, y, z, eid)
+    db.Get(r, "map").(*EntityMap).Set(x, y, z, eid)
     pos := db.Create(eid, "position").(*Position)
     pos.R, pos.X, pos.Y, pos.Z = r, x, y, z
 }
@@ -29,7 +29,7 @@ func HelperMove(db *engine.EntityDB, eid engine.Entity, dx, dy, dz int64) bool {
     if !db.Has(eid, "movement", "position") { return false }
 
     pos := db.Get(eid, "position").(*Position)
-    emap := db.Get(pos.R, "map").(EntityMap)
+    emap := db.Get(pos.R, "map").(*EntityMap)
     mov := db.Get(eid, "movement").(*Movement)
 
     // TODO: fix layer system and make it real.
