@@ -227,6 +227,7 @@ func main() {
 
     bat := db.New("movement")
     db.Set(bat, "art", base.NewArt('b', 0, 0, 1, 0, 0, 0))
+    bats := make([]engine.Entity, 0)
 
 
 
@@ -256,7 +257,7 @@ func main() {
     }
 
     showbat := false
-    numBats := 0
+    var numBats int64
 
     switch event1.Ch {
     case 'y':
@@ -265,20 +266,22 @@ func main() {
 
     if showbat{
         DrawString(width/2, height/2-4, batTextBox, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
-        //TODO: Error handling & string -> int conversion
         numBatstr := DrawTextBox(width/2, height/2, base.RGB(0, 0, 1), base.RGB(0, 0, 0), 4)
         var err error
-        numBats, err = strconv.Atoi(numBatstr)
+        numBats, err = strconv.ParseInt(numBatstr, 10, 64)
         for err != nil {
             DrawString(width/2, height/2-3, tryAgain, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
             numBatstr := DrawTextBox(width/2, height/2, base.RGB(0, 0, 1), base.RGB(0, 0, 0), 4)
-            numBats, err = strconv.Atoi(numBatstr)
+            numBats, err = strconv.ParseInt(numBatstr, 10, 64)
         }
-        //TODO: Copy bat numBats times (lol numBats) and remove print statement
 
-        fmt.Println(numBats)
-        base.HelperPlace(db, bat, tilemap, 5, 5, 2)
+        //TODO: Copy bat numBats times (lol numBats) and remove print statement
+        for i := int64(0); i < numBats; i++ {
+            newBat := db.Instance(bat)
+            bats= append(bats, newBat)
+            base.HelperPlace(db, newBat, tilemap, rand.Int63n(numBats)- numBats/2, rand.Int63n(numBats)- numBats/2, 2)
         }
+    }
 
 
 
@@ -316,8 +319,11 @@ func main() {
 
 
         // UPDATING
-        //TODO: Make EVERYBAT follow
-        if showbat { Follow(db, bat, player) }
+        if showbat { 
+            for _ , bat := range bats {
+                Follow(db, bat, player) 
+            }
+        }
 
         base.SystemMove(db)
     }
