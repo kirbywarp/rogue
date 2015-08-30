@@ -57,7 +57,7 @@ func DrawPaddedString(x, y int, text string, fg, bg base.Color, size int) {
 }
 
 /*
-DrawTextBox creates a textbox of length size at coord x, y on the termbox and blocks while the user 
+DrawTextBox creates a textbox of length size at coord x, y on the termbox and blocks while the user
 inputs a string. It stops blocking when the enter key is pressed
 */
 
@@ -70,7 +70,7 @@ func DrawTextBox(x, y int, fg, bg base.Color, size int) string {
         x1++
     }
     Draw(x, y-1, '|', fg, bg)
-    Draw(x+size+1, y-1, '|', fg, bg)  
+    Draw(x+size+1, y-1, '|', fg, bg)
     termbox.Flush()
 
     //check input
@@ -79,14 +79,14 @@ func DrawTextBox(x, y int, fg, bg base.Color, size int) string {
     for !done {
         event := termbox.PollEvent()
         switch event.Ch {
-        default: 
+        default:
             buffer = append(buffer, event.Ch)
             DrawPaddedString(x+1, y-1, string(buffer), fg, bg, size)
-            termbox.Flush()    
-        case 0: 
+            termbox.Flush()
+        case 0:
             switch event.Key {
             case termbox.KeyEnter : done = true
-            case termbox.KeyCtrlQ: 
+            case termbox.KeyCtrlQ:
                 termbox.Close()
                 os.Exit(0)
             case termbox.KeyBackspace :
@@ -103,42 +103,44 @@ func DrawTextBox(x, y int, fg, bg base.Color, size int) string {
 }
 
 
+
+
+
+
+/*
+MAP GENERATION
+*/
+type StoneFieldGenerator struct {
+    stone, grass engine.Entity
+    fill float64
+}
+func NewStoneFieldGenerator(db *engine.EntityDB, fill float64) *StoneFieldGenerator {
+    grass := db.New(); db.Set(grass, "art", base.NewArt('.', 0, 1, 0, 0, 0, 0))
+    stone := db.New(); db.Set(stone, "art", base.NewArt('#',  .7,  .7 , .7, 0, 0, 0))
+    return &StoneFieldGenerator{stone: stone, grass: grass, fill: fill}
+}
+func (g *StoneFieldGenerator) GenerateChunk(emap *base.EntityMap, x, y, z int64) {
+    chunk := emap.CreateChunk(x, y, z)
+    for x := int64(0); x < 16; x++ {
+        for y := int64(0); y < 16; y++ {
+            if rand.Float64() < g.fill {
+                chunk.Set(x, y, 0, g.stone)
+            } else {
+                chunk.Set(x, y, 0, g.grass)
+            }
+        }
+    }
+}
+
 /*
 CreateMap creates a new map region entity and returns it
-
-This map sort of has 3 "layers".
-    Z == 0: The layer for tiles, which includes walls
-    Z == 1: The layer for normal entities, mainly the player
-    Z == 2: The layer for flying things, like the bat
-
-    This ensures that the player, the bat, and a tile can
-    all exist at the same x/y position in the map.  When
-    moving an entity, the move function will look at the layer
-    one level below the entity moving to see if a wall exists.
-    For the player, it will look at Z == 0, and see the tiles.
-    The player won't be able to go through walls.
-    For the bat, it will look at Z == 1, and usually see nothing.
-    The bat will be able to go through walls therefore.
 */
 func CreateMap(db *engine.EntityDB) engine.Entity {
     retval := db.New("map")
 
-    // Tiles for the map
-    floor := db.New(); db.Set(floor, "art", base.NewArt('.', .5, .5, .5, 0, 0, 0))
-    wall  := db.New(); db.Set(wall,  "art", base.NewArt('#',  1,  1 , 1, 0, 0, 0))
-
-    // Filling out the map with a dirt-simple structure
-    emap := db.Get(retval, "map").(base.EntityMap)
-    for x := int64(-30); x <= 30; x++ {
-        for y := int64(-30); y <= 30; y++ {
-            if x == 30 || x == -30 || y == 30 || y == -30 ||
-               rand.Float64() < .05 {
-                emap.Set(x, y, 0, wall)
-            } else {
-                emap.Set(x, y, 0, floor)
-            }
-        }
-    }
+    // Register a chunk generator on the map
+    emap := db.Get(retval, "map").(*base.EntityMap)
+    emap.RegisterChunkGenerator(NewStoneFieldGenerator(db, .05))
 
     return retval
 }
@@ -150,7 +152,7 @@ func RenderMapAt(db *engine.EntityDB, eid engine.Entity) {
     width, height := termbox.Size()
 
     pos := db.Get(eid, "position").(*base.Position)
-    emap := db.Get(pos.R, "map").(base.EntityMap)
+    emap := db.Get(pos.R, "map").(*base.EntityMap)
 
     for y := 0; y < height; y++ {
         py := pos.Y+int64(y-height/2)
@@ -255,12 +257,12 @@ func main() {
 
     showbat := false
     numBats := 0
-    
+
     switch event1.Ch {
     case 'y':
         showbat = true;
     }
-    
+
     if showbat{
         DrawString(width/2, height/2-4, batTextBox, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
         //TODO: Error handling & string -> int conversion
@@ -273,7 +275,7 @@ func main() {
             numBats, err = strconv.Atoi(numBatstr)
         }
         //TODO: Copy bat numBats times (lol numBats) and remove print statement
-        
+
         fmt.Println(numBats)
         base.HelperPlace(db, bat, tilemap, 5, 5, 2)
         }
@@ -301,8 +303,8 @@ func main() {
         case 'u': dx =  1; dy =  1
         case 'b': dx = -1; dy = -1
         case 'n': dx =  1; dy = -1
-        case '>': dz = -3
-        case '<': dz =  3
+        case '>': dz = -4
+        case '<': dz =  4
         case 0:
             switch event.Key {
             case termbox.KeyCtrlQ:

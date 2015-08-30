@@ -24,6 +24,13 @@ dynamically loaded in as needed.
 */
 type MapChunk [16*16*4]engine.Entity
 
+func (chunk *MapChunk) Get(x, y, z int64) engine.Entity {
+    return chunk[(x&0xF)<<6 + (y&0xF)<<2 + (z&0x3)]
+}
+func (chunk *MapChunk) Set(x, y, z int64, eid engine.Entity) {
+    chunk[(x&0xF)<<6 + (y&0xF)<<2 + (z&0x3)] = eid
+}
+
 /*
 EntityMaps hold tile data for a contiguous section of the world, addressable
 via x,y,z coordinates.
@@ -37,13 +44,20 @@ func NewEntityMap() *EntityMap {
 }
 
 /*
+RegisterChunkGenerator sets a generator to use to create chunks on-demand
+*/
+func (m *EntityMap) RegisterChunkGenerator(generator ChunkGenerator) {
+    m.generator = generator
+}
+
+/*
 Get returns the tile at the given x,y,z coordinates.  Each coordinate is 3 bytes wide.
 */
 func (m *EntityMap) Get(x, y, z int64) engine.Entity {
     key := (x&0xFFFFF0)<<36 + (y&0xFFFFF0)<<16 + (z&0x3FFFFC)>>2
     chunk, ok := m.chunks[key]
     if chunk != nil {
-        return chunk[(x&0xF)<<6+(y&0xF)<<2+(z&0x3)]
+        return chunk.Get(x, y, z)
     } else if !ok && m.generator != nil{
         m.generator.GenerateChunk(m, (x&0xFFFFF0)>>4, (y&0xFFFFF0)>>4, (z&0x3FFFFC)>>2)
         return m.Get(x, y, z)
@@ -58,7 +72,7 @@ func (m *EntityMap) Set(x, y, z int64, eid engine.Entity) {
     key := (x&0xFFFFF0)<<36 + (y&0xFFFFF0)<<16 + (z&0x3FFFFC)>>2
     chunk, ok := m.chunks[key]
     if chunk != nil {
-        chunk[(x&0xF)<<6+(y&0xF)<<2+(z&0x3)] = eid
+        chunk.Set(x, y, z, eid)
     } else if !ok && m.generator != nil{
         m.generator.GenerateChunk(m, (x&0xFFFFF0)>>4, (y&0xFFFFF0)>>4, (z&0x3FFFFC)>>2)
         m.Set(x, y, z, eid)
