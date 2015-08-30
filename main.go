@@ -1,11 +1,12 @@
 package main
 
 import (
-    "bytes"
     "fmt"
     "github.com/nsf/termbox-go"
     "math"
     "math/rand"
+    "os"
+    "strconv"
     "time"
 
     "github.com/kirbywarp/rogue/engine"
@@ -28,20 +29,39 @@ func Draw(x, y int, symbol rune, fg, bg base.Color) {
 /*
 DrawString prints text to the termbox on row y starting at column x
 */
-func DrawString(text string, x, y int, fg, bg base.Color) {
+func DrawString(x, y int, text string, fg, bg base.Color) {
     for _, char := range text {
         Draw(x, y, char, fg, bg)
         x++
     }
 }
+/*
+DrawPaddedString prints text to termbox with size cells filled up. Any remaining cells not covered by text
+will be drawn empty. If text is longer than size, it will be truncated.
+*/
+
+func DrawPaddedString(x, y int, text string, fg, bg base.Color, size int) {
+    var i int
+    var char rune
+    for _, char = range text {
+        if i >= size {
+            break
+        }
+        Draw(x+i, y, char, fg, bg)
+        i++
+    }
+    for i < size {
+        Draw(x+i, y, '.', bg, bg)
+        i++
+    }
+}
 
 /*
 DrawTextBox creates a textbox of length size at coord x, y on the termbox and blocks while the user 
-inputs a string. It stops blocking when the enter key is pressed or when the string exceeds length size 
-and returns the user's input.
+inputs a string. It stops blocking when the enter key is pressed
 */
 
-func DrawTextBox(size, x, y int, fg, bg base.Color) string {
+func DrawTextBox(x, y int, fg, bg base.Color, size int) string {
     //Draw the box
     x1 := x
     for i := 0; i < size+2; i++ {
@@ -52,30 +72,34 @@ func DrawTextBox(size, x, y int, fg, bg base.Color) string {
     Draw(x, y-1, '|', fg, bg)
     Draw(x+size+1, y-1, '|', fg, bg)  
     termbox.Flush()
-    
+
     //check input
-    var buffer bytes.Buffer
-    i:= 0
-    for i < size {
+    buffer := make([]rune, 0)
+    done := false
+    for !done {
         event := termbox.PollEvent()
-        if event.Key == termbox.KeyEnter {
-            return buffer.String()
-        } else if event.Key == termbox.KeyBackspace {
-            if i > 0 {
-                i--
-            }
-            buffer.Truncate(i)
-            //TODO: better way to clear the cell?
-            Draw(x+1+i, y-1, '.', base.RGB(0, 0, 0), base.RGB(0, 0, 0))
+        switch event.Ch {
+        default: 
+            buffer = append(buffer, event.Ch)
+            DrawPaddedString(x+1, y-1, string(buffer), fg, bg, size)
             termbox.Flush()    
-        } else if event.Type == termbox.EventKey {            
-            buffer.WriteString(string(event.Ch))
-            Draw(x+1+i, y-1, event.Ch, fg,bg)
-            termbox.Flush()
-            i++
+        case 0: 
+            switch event.Key {
+            case termbox.KeyEnter : done = true
+            case termbox.KeyCtrlQ: 
+                termbox.Close()
+                os.Exit(0)
+            case termbox.KeyBackspace :
+                if len(buffer) > 0{
+                    buffer = buffer[:len(buffer)-1]
+                    DrawPaddedString(x+1, y-1, string(buffer), fg, bg, size)
+                    termbox.Flush()
+                }
+            }
         }
     }
-    return buffer.String()
+    DrawPaddedString(x+1, y-1, "", fg, bg, size)
+    return string(buffer)
 }
 
 
@@ -217,10 +241,11 @@ func main() {
     width, height := termbox.Size()
     title := "Press any key to play. Press 'y' to face an bat at your own risk!"
     batTextBox := "How many bats?"
+    tryAgain := "Please enter an integer"
 
 
     // menu
-    DrawString(title, width/8, height/4, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
+    DrawString(width/8, height/4, title, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
     termbox.Flush()
 
     event1 := termbox.PollEvent()
@@ -229,31 +254,37 @@ func main() {
     }
 
     showbat := false
-    //TODO: numBats := 0
-    numBats := "0"
+    numBats := 0
+    
     switch event1.Ch {
     case 'y':
         showbat = true;
-        //TODO: replace next line below
-        base.HelperPlace(db, bat, tilemap, 5, 5, 2)
     }
     
     if showbat{
-        DrawString(batTextBox, width/2, height/2-4, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
+        DrawString(width/2, height/2-4, batTextBox, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
         //TODO: Error handling & string -> int conversion
-        numBats = DrawTextBox(4, width/2, height/2, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
-        //TODO: Copy bat numBats times (lol numBats) and remove print statement
-        fmt.Println(numBats)
+        numBatstr := DrawTextBox(width/2, height/2, base.RGB(0, 0, 1), base.RGB(0, 0, 0), 4)
+        var err error
+        numBats, err = strconv.Atoi(numBatstr)
+        for err != nil {
+            DrawString(width/2, height/2-3, tryAgain, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
+            numBatstr := DrawTextBox(width/2, height/2, base.RGB(0, 0, 1), base.RGB(0, 0, 0), 4)
+            numBats, err = strconv.Atoi(numBatstr)
         }
+        //TODO: Copy bat numBats times (lol numBats) and remove print statement
         
-    
+        fmt.Println(numBats)
+        base.HelperPlace(db, bat, tilemap, 5, 5, 2)
+        }
+
+
 
     // game loop
     done := false
     for !done {
         // RENDERING
         RenderMapAt(db, player)
-
 
 
         // INPUT HANDLING
