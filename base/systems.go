@@ -11,7 +11,7 @@ import (
 /////////////////////
 
 /*
-Move applies makes every entity with movement try to move in the map
+SystemMove applies makes every entity with movement try to move in the map
 */
 func SystemMove(db *engine.EntityDB) {
     for _, eid := range db.Search("movement", "position") {
@@ -26,5 +26,19 @@ func SystemMove(db *engine.EntityDB) {
         emap.Set(pos.X, pos.Y, pos.Z, 0)
         pos.X += mov.Dx; pos.Y += mov.Dy; pos.Z += mov.Dz
         emap.Set(pos.X, pos.Y, pos.Z, eid)
+    }
+}
+
+////////
+// AI //
+////////
+
+/*
+SystemAct allows each entity with an AI to attempt to act
+*/
+func SystemAct(db *engine.EntityDB) {
+    for _, eid := range db.Search("ai", "position") {
+        ai := db.Get(eid, "ai").(*AI)
+        ai.Controller.Act(db, eid)
     }
 }

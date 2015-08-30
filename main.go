@@ -183,11 +183,20 @@ func RenderMapAt(db *engine.EntityDB, eid engine.Entity) {
 
 
 /*
-Follow attempts to move an entity to chase another entity (in this case, bat chases player)
+FollowAI makes an entity doggedly follow a target
 */
-func Follow(db *engine.EntityDB, eid, target engine.Entity) {
+type FollowAI struct {
+    Target engine.Entity
+}
+func NewFollowAI(target engine.Entity) *FollowAI {
+    return &FollowAI{Target: target}
+}
+func (ai *FollowAI) Clone() base.AIController {
+    return &FollowAI{Target: ai.Target}
+}
+func (ai *FollowAI) Act(db *engine.EntityDB, eid engine.Entity) {
     epos := db.Get(eid, "position").(*base.Position)
-    tpos := db.Get(target, "position").(*base.Position)
+    tpos := db.Get(ai.Target, "position").(*base.Position)
 
     dx, dy := int64(0), int64(0)
     if epos.X > tpos.X+1 || epos.X < tpos.X-1 {
@@ -206,6 +215,53 @@ func Follow(db *engine.EntityDB, eid, target engine.Entity) {
 }
 
 
+/* Define a global variable "done" for now, until
+there is a legitimate input routing system
+*/
+var (
+    done = false
+)
+
+
+/*
+PlayerAI makes an entity respond to player controls.
+*/
+type PlayerAI struct {}
+func NewPlayerAI() *PlayerAI {
+    return &PlayerAI{}
+}
+func (ai *PlayerAI) Clone() base.AIController {
+    return &PlayerAI{}
+}
+func (ai *PlayerAI) Act(db *engine.EntityDB, eid engine.Entity) {
+        // RENDERING
+        RenderMapAt(db, eid)
+
+        // INPUT HANDLING
+        event := termbox.PollEvent()
+
+        var dx, dy, dz int64
+
+        switch event.Ch {
+        case 'h': dx = -1
+        case 'j': dy = -1
+        case 'k': dy =  1
+        case 'l': dx =  1
+        case 'y': dx = -1; dy =  1
+        case 'u': dx =  1; dy =  1
+        case 'b': dx = -1; dy = -1
+        case 'n': dx =  1; dy = -1
+        case '>': dz = -4
+        case '<': dz =  4
+        case 0:
+            switch event.Key {
+            case termbox.KeyCtrlQ:
+                done = true
+            }
+        }
+
+        base.HelperMove(db, eid, dx, dy, dz)
+}
 
 
 
@@ -222,12 +278,13 @@ func main() {
     tilemap := CreateMap(db)
 
     player := db.New("movement")
+    db.Set(player, "ai", base.NewAI(NewPlayerAI()))
     db.Set(player, "art", base.NewArt('@', 1, 0, 0, 0, 0, 0))
     base.HelperPlace(db, player, tilemap, 0, 0, 1)
 
     bat := db.New("movement")
+    db.Set(bat, "ai", base.NewAI(NewFollowAI(player)))
     db.Set(bat, "art", base.NewArt('b', 0, 0, 1, 0, 0, 0))
-    bats := make([]engine.Entity, 0)
 
 
 
@@ -278,53 +335,15 @@ func main() {
         //TODO: Copy bat numBats times (lol numBats) and remove print statement
         for i := int64(0); i < numBats; i++ {
             newBat := db.Instance(bat)
-            bats= append(bats, newBat)
-            base.HelperPlace(db, newBat, tilemap, rand.Int63n(numBats)- numBats/2, rand.Int63n(numBats)- numBats/2, 2)
+            base.HelperPlace(db, newBat, tilemap, rand.Int63n(numBats)-numBats/2, rand.Int63n(numBats)-numBats/2, 2)
         }
     }
 
 
 
     // game loop
-    done := false
     for !done {
-        // RENDERING
-        RenderMapAt(db, player)
-
-
-        // INPUT HANDLING
-        event := termbox.PollEvent()
-
-        var dx, dy, dz int64
-
-        switch event.Ch {
-        case 'h': dx = -1
-        case 'j': dy = -1
-        case 'k': dy =  1
-        case 'l': dx =  1
-        case 'y': dx = -1; dy =  1
-        case 'u': dx =  1; dy =  1
-        case 'b': dx = -1; dy = -1
-        case 'n': dx =  1; dy = -1
-        case '>': dz = -4
-        case '<': dz =  4
-        case 0:
-            switch event.Key {
-            case termbox.KeyCtrlQ:
-                done = true
-            }
-        }
-
-        base.HelperMove(db, player, dx, dy, dz)
-
-
-        // UPDATING
-        if showbat { 
-            for _ , bat := range bats {
-                Follow(db, bat, player) 
-            }
-        }
-
+        base.SystemAct(db)
         base.SystemMove(db)
     }
 }

@@ -6,6 +6,26 @@ import (
 )
 
 
+// AI ============================================================================ //
+type AIController interface {
+    Act(*engine.EntityDB, engine.Entity)
+    Clone() AIController
+}
+
+type AI struct {
+    Controller AIController
+}
+func NewAI(controller AIController) *AI {
+    return &AI{Controller: controller}
+}
+
+func CreateAI() interface{} { return &AI{} }
+func CloneAI(val interface{}) interface{} {
+    tmp := *(val.(*AI))
+    tmp.Controller = tmp.Controller.Clone()
+    return &tmp
+}
+
 // ART ============================================================================ //
 type Color struct {
     R, G, B float64
@@ -66,6 +86,7 @@ func CloneEntityMap(val interface{}) interface{} {
 
 
 func RegisterTypes(db *engine.EntityDB) {
+    db.Register("ai", CreateAI, CloneAI)
     db.Register("art", CreateArt, CloneArt)
     db.Register("position", CreatePosition, ClonePosition)
     db.Register("movement", CreateMovement, CloneMovement)
