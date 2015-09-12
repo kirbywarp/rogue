@@ -215,13 +215,9 @@ func (ai *FollowAI) Act(db *engine.EntityDB, eid engine.Entity) {
 }
 
 
-/* Define a global variable "done" for now, until
-there is a legitimate input routing system
-*/
 var (
     done = false
 )
-
 
 /*
 PlayerAI makes an entity respond to player controls.
@@ -265,12 +261,164 @@ func (ai *PlayerAI) Act(db *engine.EntityDB, eid engine.Entity) {
 
 
 
-func main() {
-    // Seed the random number generator!
-    rand.Seed(time.Now().UTC().UnixNano())
+/************************
+ ** State Machine Code **
+ ************************/
+
+/*
+States are UI states that respond to time ticks and input, and can
+transition to other states in various ways.
+*/
+type State interface {
+    Enter(*UI)                  // Called when this state is entered from a different state
+    Exit(*UI)                   // Called when the machine transfers away from this state
+    Update(*UI, float64)        // Called every frame of animation
+}
+
+/*
+UI holds state information and provides convenience methods for
+things like dialogue boxes and input areas.
+*/
+type UI struct {
+    States map[string]State
+    StateStack []string
+    Properties map[string]interface{}
+}
+func NewUI() *UI {
+    return &UI{States: make(map[string]State), StateStack: make([]string, 0), Properties: make(map[string]interface{})}
+}
+
+func (ui *UI) RegisterState(name string, state State) {
+    ui.States[name] = state
+}
+
+func (ui *UI) Transition(name string) {
+    l := len(ui.StateStack)
+    if l > 0 {
+        ui.StateStack[l-1] = name
+    }
+}
+func (ui *UI) Push(name string) {
+    ui.StateStack = append(ui.StateStack, name)
+}
+func (ui *UI) Pop() {
+    l := len(ui.StateStack)
+    if l > 0 {
+        ui.StateStack = ui.StateStack[:l-1]
+    }
+}
+func (ui *UI) Peek() string {
+    l := len(ui.StateStack)
+    if l > 0 {
+        return ui.StateStack[l-1]
+    }
+    return ""
+}
+
+func (ui *UI) Run() {
+    name := ui.Peek()
+    state := ui.States[name]
+    state.Enter(ui)
+
+    for {
+        state.Update(ui, 1)
+
+        next := ui.Peek()
+        if next == "" {
+            return
+        } else if next != name {
+            state.Exit(ui)
+            name = next
+            state = ui.States[name]
+            state.Enter(ui)
+        }
+    }
+}
 
 
 
+
+
+/************************
+ * State implementation *
+ ************************/
+
+/*
+TitleState
+*/
+type TitleState struct {}
+func NewTitleState() *TitleState {
+    return &TitleState{}
+}
+
+func (title *TitleState) Enter(ui *UI) {}
+func (title *TitleState) Exit(ui *UI) {}
+func (title *TitleState) Update(ui *UI, dt float64) {
+    width, height := termbox.Size()
+
+    text := "Press any key to play. Press 'y' to face an bat at your own risk!"
+    DrawString(width/8, height/4, text, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
+    termbox.Flush()
+
+    event := termbox.PollEvent()
+    for event.Type != termbox.EventKey {
+        event = termbox.PollEvent()
+    }
+
+    switch event.Ch {
+    case 'y':
+        ui.Transition("batmenu")
+        return
+    case 0:
+        switch event.Key {
+        case termbox.KeyCtrlQ:
+            ui.Pop()
+            return
+        }
+    }
+
+    // Create a game without bats
+    ui.RegisterState("game", NewGameState(0))
+    ui.Transition("game")
+}
+
+/*
+BatMenuState
+*/
+type BatMenuState struct {}
+func NewBatMenuState() *BatMenuState {
+    return &BatMenuState{}
+}
+
+func (menu *BatMenuState) Enter(ui *UI) {}
+func (menu *BatMenuState) Exit(ui *UI) {}
+func (menu *BatMenuState) Update(ui *UI, dt float64) {
+    width, height := termbox.Size()
+
+    label := "How many bats?"
+    tryAgain := "Please enter an integer"
+
+    DrawString(width/2, height/2-4, label, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
+    numBatstr := DrawTextBox(width/2, height/2, base.RGB(0, 0, 1), base.RGB(0, 0, 0), 4)
+    numBats, err := strconv.ParseInt(numBatstr, 10, 64)
+    for err != nil {
+        DrawString(width/2, height/2-3, tryAgain, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
+        numBatstr := DrawTextBox(width/2, height/2, base.RGB(0, 0, 1), base.RGB(0, 0, 0), 4)
+        numBats, err = strconv.ParseInt(numBatstr, 10, 64)
+    }
+
+    ui.RegisterState("game", NewGameState(numBats))
+    ui.Transition("game")
+}
+
+
+/*
+GameState
+*/
+type GameState struct {
+    DB *engine.EntityDB
+}
+func NewGameState(numbats int64) *GameState {
     // Game Data Initialization
     db := engine.NewEntityDB()
     base.RegisterTypes(db)
@@ -286,7 +434,31 @@ func main() {
     db.Set(bat, "ai", base.NewAI(NewFollowAI(player)))
     db.Set(bat, "art", base.NewArt('b', 0, 0, 1, 0, 0, 0))
 
+    // Create bats from the template entity
+    for i := int64(0); i < numbats; i++ {
+        newBat := db.Instance(bat)
+        base.HelperPlace(db, newBat, tilemap, rand.Int63n(numbats)-numbats/2, rand.Int63n(numbats)-numbats/2, 2)
+    }
 
+    return &GameState{DB: db}
+}
+
+func (game *GameState) Enter(ui *UI) {}
+func (game *GameState) Exit(ui *UI) {}
+func (game *GameState) Update(ui *UI, dt float64) {
+    base.SystemAct(game.DB)
+    base.SystemMove(game.DB)
+
+    if done {
+        ui.Pop()
+    }
+}
+
+
+
+func main() {
+    // Seed the random number generator!
+    rand.Seed(time.Now().UTC().UnixNano())
 
     // GUI and input initialization
     err := termbox.Init()
@@ -295,55 +467,14 @@ func main() {
         return
     }
     defer termbox.Close()
-
     termbox.SetOutputMode(termbox.Output216)
     termbox.Clear(0, 0)
-    width, height := termbox.Size()
-    title := "Press any key to play. Press 'y' to face an bat at your own risk!"
-    batTextBox := "How many bats?"
-    tryAgain := "Please enter an integer"
 
+    // Initial states
+    ui := NewUI()
+    ui.RegisterState("title", NewTitleState())
+    ui.RegisterState("batmenu", NewBatMenuState())
 
-    // menu
-    DrawString(width/8, height/4, title, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
-    termbox.Flush()
-
-    event1 := termbox.PollEvent()
-    for event1.Type != termbox.EventKey {
-        event1 = termbox.PollEvent()
-    }
-
-    showbat := false
-    var numBats int64
-
-    switch event1.Ch {
-    case 'y':
-        showbat = true;
-    }
-
-    if showbat{
-        DrawString(width/2, height/2-4, batTextBox, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
-        numBatstr := DrawTextBox(width/2, height/2, base.RGB(0, 0, 1), base.RGB(0, 0, 0), 4)
-        var err error
-        numBats, err = strconv.ParseInt(numBatstr, 10, 64)
-        for err != nil {
-            DrawString(width/2, height/2-3, tryAgain, base.RGB(0, 0, 1), base.RGB(0, 0, 0))
-            numBatstr := DrawTextBox(width/2, height/2, base.RGB(0, 0, 1), base.RGB(0, 0, 0), 4)
-            numBats, err = strconv.ParseInt(numBatstr, 10, 64)
-        }
-
-        //TODO: Copy bat numBats times (lol numBats) and remove print statement
-        for i := int64(0); i < numBats; i++ {
-            newBat := db.Instance(bat)
-            base.HelperPlace(db, newBat, tilemap, rand.Int63n(numBats)-numBats/2, rand.Int63n(numBats)-numBats/2, 2)
-        }
-    }
-
-
-
-    // game loop
-    for !done {
-        base.SystemAct(db)
-        base.SystemMove(db)
-    }
+    ui.Push("title")
+    ui.Run()
 }
