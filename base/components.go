@@ -45,6 +45,42 @@ func NewArt(symbol rune, fgr, fgg, fgb, bgr, bgg, bgb float64) *Art {
 func CreateArt() interface{} { return &Art{} }
 func CloneArt(val interface{}) interface{} { tmp := *(val.(*Art)); return &tmp }
 
+// HEALTH ============================================================================== //
+
+type Health struct {
+    Max, Current float64
+}
+
+func NewHealth(max, current float64) *Health {
+    return &Health{Max: max, Current: current}
+}
+
+func (health *Health) Mod(delta float64) {
+    health.Current += delta
+    if health.Current >= health.Max {
+        health.Current = health.Max
+    } else if health.Current <= 0 {
+        health.Current = 0
+    }
+}
+
+func (health *Health) SetMax(max float64) {
+    if health.Current >= max {
+        health.Current = max
+    }
+    health.Max = max
+}
+
+func (health *Health) SetCurrent(current float64) {
+    health.Current = current
+    if health.Current >= health.Max {
+        health.Current = health.Max
+    }
+}
+
+func CreateHealth() interface{} { return &Health{} }
+func CloneHealth(val interface{}) interface{} { tmp := *(val.(*Health)); return &tmp }
+
 // POSITION ============================================================================ //
 type Position struct {
     R engine.Entity
@@ -91,4 +127,5 @@ func RegisterTypes(db *engine.EntityDB) {
     db.Register("position", CreatePosition, ClonePosition)
     db.Register("movement", CreateMovement, CloneMovement)
     db.Register("map", CreateEntityMap, CloneEntityMap)
+    db.Register("health", CreateHealth, CloneHealth)
 }
