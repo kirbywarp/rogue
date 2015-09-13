@@ -45,6 +45,19 @@ func NewArt(symbol rune, fgr, fgg, fgb, bgr, bgg, bgb float64) *Art {
 func CreateArt() interface{} { return &Art{} }
 func CloneArt(val interface{}) interface{} { tmp := *(val.(*Art)); return &tmp }
 
+// ATTACK ============================================================================== //
+
+type Attack struct {
+    Damage float64
+}
+
+func NewAttack(damage float64) *Attack {
+    return &Attack{Damage: damage}
+    }
+
+func CreateAttack() interface{} { return &Attack{} }
+func CloneAttack(val interface{}) interface{} { tmp := *(val.(*Attack)); return &tmp }
+
 // HEALTH ============================================================================== //
 
 type Health struct {
@@ -128,4 +141,5 @@ func RegisterTypes(db *engine.EntityDB) {
     db.Register("movement", CreateMovement, CloneMovement)
     db.Register("map", CreateEntityMap, CloneEntityMap)
     db.Register("health", CreateHealth, CloneHealth)
+    db.Register("attack", CreateAttack, CloneAttack)
 }
